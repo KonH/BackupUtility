@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using BackupUtility.Core.FileManager;
 
 namespace BackupUtility.Tests.Mocks {
-	class MockFileException : Exception {}
+	class MockFileException : Exception { }
 
 	class MockFileManager : IFileManager {
 		const char Delimiter = ':';
@@ -20,8 +21,16 @@ namespace BackupUtility.Tests.Mocks {
 			return string.Join(Delimiter, parts);
 		}
 
-		public Task CopyFile(string fromFilePath, string toFilePath) {
-			throw new System.NotImplementedException();
+		public string GetDirectoryName(string fullPath) {
+			return fullPath.Split(Delimiter).LastOrDefault();
+		}
+
+		public async Task CopyFile(string fromFilePath, string toFilePath) {
+			var data = await ReadAllBytes(fromFilePath);
+			if ( await IsFileExists(toFilePath) ) {
+				await DeleteFile(toFilePath);
+			}
+			await CreateFile(toFilePath, data);
 		}
 
 		public Task CreateDirectory(string directoryPath) {
@@ -48,17 +57,13 @@ namespace BackupUtility.Tests.Mocks {
 
 		void CreateFile(MockDirectory parent, Span<string> parts, byte[] bytes) {
 			if ( parts.Length == 0 ) {
-				throw new MockFileException();
+				ThrowCommonException();
 			}
 			if ( parts.Length == 1 ) {
 				parent.Files.Add(parts[0], bytes);
 				return;
 			}
-			MockDirectory cur;
-			if ( !parent.Directories.TryGetValue(parts[0], out cur) ) {
-				throw new MockFileException();
-			}
-			CreateFile(cur, parts.Slice(1), bytes);
+			CreateFile(GetDirectoryOrThrow(parent, parts[0]), parts.Slice(1), bytes);
 		}
 
 		public Task DeleteDirectory(string directoryPath) {
@@ -68,29 +73,39 @@ namespace BackupUtility.Tests.Mocks {
 
 		void DeleteDirectory(MockDirectory parent, Span<string> dirs) {
 			if ( dirs.Length == 0 ) {
-				throw new MockFileException();
+				ThrowCommonException();
 			}
 			if ( dirs.Length == 1 ) {
 				parent.Directories.Remove(dirs[0]);
 				return;
 			}
-			MockDirectory cur;
-			if ( !parent.Directories.TryGetValue(dirs[0], out cur) ) {
-				throw new MockFileException();
-			}
-			DeleteDirectory(cur, dirs.Slice(1));
+			DeleteDirectory(GetDirectoryOrThrow(parent, dirs[0]), dirs.Slice(1));
 		}
 
 		public Task DeleteFile(string filePath) {
-			throw new NotImplementedException();
+			DeleteFile(_root, filePath.Split(Delimiter));
+			return Task.CompletedTask;
+		}
+
+		void DeleteFile(MockDirectory parent, Span<string> dirs) {
+			if ( dirs.Length == 0 ) {
+				ThrowCommonException();
+			}
+			if ( dirs.Length == 1 ) {
+				parent.Files.Remove(dirs[0]);
+				return;
+			}
+			DeleteFile(GetDirectoryOrThrow(parent, dirs[0]), dirs.Slice(1));
 		}
 
 		public Task<IEnumerable<string>> GetDirectories(string directoryPath) {
-			throw new NotImplementedException();
+			IEnumerable<string> dirs = GetDirectoryOrThrow(_root, directoryPath.Split(Delimiter)).Directories.Keys;
+			return Task.FromResult(dirs);
 		}
 
 		public Task<IEnumerable<string>> GetFiles(string directoryPath) {
-			throw new NotImplementedException();
+			IEnumerable<string> files = GetDirectoryOrThrow(_root, directoryPath.Split(Delimiter)).Files.Keys;
+			return Task.FromResult(files);
 		}
 
 		public Task<bool> IsDirectoryExists(string directoryPath) {
@@ -127,7 +142,42 @@ namespace BackupUtility.Tests.Mocks {
 		}
 
 		public Task<byte[]> ReadAllBytes(string filePath) {
-			throw new System.NotImplementedException();
+			return Task.FromResult(ReadAllBytes(_root, filePath.Split(Delimiter)));
+		}
+
+		byte[] ReadAllBytes(MockDirectory parent, Span<string> parts) {
+			if ( parts.Length == 0 ) {
+				ThrowCommonException();
+			}
+			if ( parts.Length == 1 ) {
+				if ( parent.Files.TryGetValue(parts[0], out var bytes) ) {
+					return bytes;
+				}
+				ThrowCommonException();
+			}
+			return ReadAllBytes(GetDirectoryOrThrow(parent, parts[0]), parts.Slice(1));
+		}
+
+		MockDirectory GetDirectoryOrThrow(MockDirectory parent, string name) {
+			MockDirectory cur;
+			if ( !parent.Directories.TryGetValue(name, out cur) ) {
+				ThrowCommonException();
+			}
+			return cur;
+		}
+
+		MockDirectory GetDirectoryOrThrow(MockDirectory parent, Span<string> parts) {
+			if ( parts.Length == 0 ) {
+				ThrowCommonException();
+			}
+			if ( parts.Length == 1 ) {
+				return GetDirectoryOrThrow(parent, parts[0]);
+			}
+			return GetDirectoryOrThrow(GetDirectoryOrThrow(parent, parts[0]), parts.Slice(1));
+		}
+
+		void ThrowCommonException() {
+			throw new MockFileException();
 		}
 	}
 }

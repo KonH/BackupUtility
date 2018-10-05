@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 namespace BackupUtility.Core.FileManager {
 	public interface IFileManager {
 		string CombinePath(params string[] parts);
+		string GetDirectoryName(string fullPath);
 		Task<bool> IsFileExists(string filePath);
 		Task<byte[]> ReadAllBytes(string filePath);
 		Task CreateFile(string filePath, byte[] bytes);

@@ -1,7 +1,7 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
+﻿using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace BackupUtility.Core.FileManager {
 	public class LocalFileManager : IFileManager {
@@ -9,8 +9,14 @@ namespace BackupUtility.Core.FileManager {
 			return Path.Combine(parts);
 		}
 
+		public string GetDirectoryName(string fullPath) {
+			var info = new DirectoryInfo(fullPath);
+			return info.Name;
+		}
+
 		public Task CopyFile(string fromFilePath, string toFilePath) {
-			throw new NotImplementedException();
+			File.Copy(fromFilePath, toFilePath, true);
+			return Task.CompletedTask;
 		}
 
 		public Task CreateDirectory(string directoryPath) {
@@ -34,15 +40,20 @@ namespace BackupUtility.Core.FileManager {
 		}
 
 		public Task DeleteFile(string filePath) {
-			throw new NotImplementedException();
+			File.Delete(filePath);
+			return Task.CompletedTask;
 		}
 
 		public Task<IEnumerable<string>> GetDirectories(string directoryPath) {
-			throw new NotImplementedException();
+			var fullPathes = Directory.GetDirectories(directoryPath);
+			var localPathes = fullPathes.Select(it => Path.GetFileName(it));
+			return Task.FromResult(localPathes);
 		}
 
 		public Task<IEnumerable<string>> GetFiles(string directoryPath) {
-			throw new NotImplementedException();
+			var fullPathes = Directory.GetFiles(directoryPath);
+			var localPathes = fullPathes.Select(it => Path.GetFileName(it));
+			return Task.FromResult(localPathes);
 		}
 
 		public Task<bool> IsDirectoryExists(string directoryPath) {
@@ -54,7 +65,7 @@ namespace BackupUtility.Core.FileManager {
 		}
 
 		public Task<byte[]> ReadAllBytes(string filePath) {
-			throw new NotImplementedException();
+			return File.ReadAllBytesAsync(filePath);
 		}
 	}
 }

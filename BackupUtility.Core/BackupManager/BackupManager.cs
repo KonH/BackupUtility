@@ -1,26 +1,37 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
+using BackupUtility.Core.Models;
 using BackupUtility.Core.FileManager;
 
 namespace BackupUtility.Core.BackupManager {
 	public class BackupManager : IBackupManager {
-		readonly IFileManager _source;
-		readonly IFileManager _destination;
+		readonly IFileManager           _source;
+		readonly IFileManager           _destination;
+		readonly ILogger<BackupManager> _logger;
 
-		public BackupManager(IFileManager source, IFileManager destination) {
+		public BackupManager(IFileManager source, IFileManager destination, ILogger<BackupManager> logger = null) {
 			_source      = source;
 			_destination = destination;
+			_logger      = logger;
 		}
 
 		public async Task Dump(IEnumerable<string> sourceDirs, string backupDir) {
+			_logger?.LogInformation($"Dump directories: [{string.Join(',', sourceDirs)}] into '{backupDir}'");
 			await EnsureBackupDirectory(backupDir);
-			await Task.WhenAll(sourceDirs.Select(sourceDir => DumpSourceDir(sourceDir, backupDir)));
+			var results = await Task.WhenAll(sourceDirs.Select(sourceDir => DumpSourceDir(sourceDir, backupDir)));
+			_logger?.LogInformation($"Dump completed: {FormatResults(results)}");
 		}
 
-		async Task DumpSourceDir(string sourceDir, string backupDir) {
+		async Task<BackupDirResult> DumpSourceDir(string sourceDir, string backupDir) {
+			_logger?.LogDebug($"DumpSourceDir: '{sourceDir}' => '{backupDir}'");
 			var shortSourceDir = _source.GetDirectoryName(sourceDir);
-			await DumpDirectory(sourceDir, _destination.CombinePath(backupDir, shortSourceDir));
+			var results = await DumpDirectory(sourceDir, _destination.CombinePath(backupDir, shortSourceDir));
+			var result = new BackupDirResult(sourceDir, backupDir, results);
+			_logger?.LogDebug($"DumpSourceDir: {result}");
+			return result;
 		}
 
 		async Task EnsureBackupDirectory(string path) {
@@ -29,27 +40,51 @@ namespace BackupUtility.Core.BackupManager {
 			}
 		}
 
-		async Task DumpDirectory(string sourceDir, string backupDir) {
+		async Task<List<BackupFileResult>> DumpDirectory(string sourceDir, string backupDir) {
+			_logger?.LogDebug($"DumpDirectory: '{sourceDir}' => '{backupDir}'");
 			await EnsureBackupDirectory(backupDir);
+			var totalResults = new List<BackupFileResult>();
 			var files = await _source.GetFiles(sourceDir);
-			await Task.WhenAll(files.Select(sourceFile => DumpFile(sourceDir, backupDir, sourceFile)));
+			totalResults.AddRange(await Task.WhenAll(files.Select(sourceFile => DumpFile(sourceDir, backupDir, sourceFile))));
 			var dirs = await _source.GetDirectories(sourceDir);
-			await Task.WhenAll(dirs.Select(subDir => DumpSubDirectory(sourceDir, backupDir, subDir)));
-		}
-
-		async Task DumpFile(string sourceDir, string backupDir, string sourceFile) {
-			var contents = await _source.ReadAllBytes(_source.CombinePath(sourceDir, sourceFile));
-			var destPath = _destination.CombinePath(backupDir, sourceFile);
-			if ( await _destination.IsFileExists(destPath) ) {
-				await _destination.DeleteFile(destPath);
+			var dirFileResults = await Task.WhenAll(dirs.Select(subDir => DumpSubDirectory(sourceDir, backupDir, subDir)));
+			foreach ( var subResult in dirFileResults ) {
+				totalResults.AddRange(subResult);
 			}
-			await _destination.CreateFile(destPath, contents);
+			_logger?.LogDebug($"DumpDirectory: '{sourceDir}' => '{backupDir}': {totalResults.Count(r => r.Success)}/{totalResults.Count}");
+			return totalResults;
 		}
 
-		async Task DumpSubDirectory(string sourceDir, string backupDir, string subDir) {
+		async Task<BackupFileResult> DumpFile(string sourceDir, string backupDir, string sourceFile) {
+			_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}')");
+			var sourcePath = _source.CombinePath(sourceDir, sourceFile);
+			var destPath = _destination.CombinePath(backupDir, sourceFile);
+			try {
+				var contents = await _source.ReadAllBytes(sourcePath);
+				if ( await _destination.IsFileExists(destPath) ) {
+					await _destination.DeleteFile(destPath);
+				}
+				await _destination.CreateFile(destPath, contents);
+				_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): success");
+				return new BackupFileResult(sourcePath, destPath);
+			} catch ( Exception e ) {
+				_logger?.LogWarning($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): {e}");
+				return new BackupFileResult(sourcePath, destPath, e);
+			}
+		}
+
+		Task<List<BackupFileResult>> DumpSubDirectory(string sourceDir, string backupDir, string subDir) {
 			var sourceSubDir = _source.CombinePath(sourceDir, subDir);
 			var destSubDir = _destination.CombinePath(backupDir, subDir);
-			await DumpDirectory(sourceSubDir, destSubDir);
+			return DumpDirectory(sourceSubDir, destSubDir);
+		}
+
+		static string FormatResults(IEnumerable<BackupDirResult> results) {
+			return $"[{string.Join(',', results)}]";
+		}
+
+		static string FormatResults(IEnumerable<BackupFileResult> results) {
+			return $"[{string.Join(',', results)}]";
 		}
 	}
 }

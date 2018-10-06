@@ -11,8 +11,51 @@ namespace BackupUtility.Tests.Mocks {
 		const char Delimiter = ':';
 
 		class MockDirectory {
-			public Dictionary<string, byte[]>        Files       = new Dictionary<string, byte[]>();
-			public Dictionary<string, MockDirectory> Directories = new Dictionary<string, MockDirectory>();
+			public IEnumerable<string> Directories => _directories.Keys;
+			public IEnumerable<string> Files       => _files.Keys;
+
+			Dictionary<string, byte[]>        _files       = new Dictionary<string, byte[]>();
+			Dictionary<string, MockDirectory> _directories = new Dictionary<string, MockDirectory>();
+
+			public bool TryGetDirectory(string name, out MockDirectory dir) {
+				return _directories.TryGetValue(name, out dir);
+			}
+
+			public void AddDirectory(string name, MockDirectory dir) {
+				EnsureEntryDontExist(name);
+				_directories.Add(name, dir);
+			}
+
+			public bool ContainsDirectory(string name) {
+				return _directories.ContainsKey(name);
+			}
+
+			public void RemoveDirectory(string name) {
+				_directories.Remove(name);
+			}
+
+			public bool TryGetFile(string name, out byte[] file) {
+				return _files.TryGetValue(name, out file);
+			}
+
+			public void AddFile(string name, byte[] file) {
+				EnsureEntryDontExist(name);
+				_files.Add(name, file);
+			}
+
+			public bool ContainsFile(string name) {
+				return _files.ContainsKey(name);
+			}
+
+			public void RemoveFile(string name) {
+				_files.Remove(name);
+			}
+
+			void EnsureEntryDontExist(string name) {
+				if ( ContainsDirectory(name) || ContainsFile(name) ) {
+					throw new MockFileException();
+				} 
+			}
 		}
 
 		MockDirectory _root = new MockDirectory();
@@ -43,9 +86,9 @@ namespace BackupUtility.Tests.Mocks {
 				return;
 			}
 			MockDirectory cur;
-			if ( !parent.Directories.TryGetValue(dirs[0], out cur) ) {
+			if ( !parent.TryGetDirectory(dirs[0], out cur) ) {
 				cur = new MockDirectory();
-				parent.Directories.Add(dirs[0], cur);
+				parent.AddDirectory(dirs[0], cur);
 			}
 			CreateDirectory(cur, dirs.Slice(1));
 		}
@@ -60,7 +103,7 @@ namespace BackupUtility.Tests.Mocks {
 				ThrowCommonException();
 			}
 			if ( parts.Length == 1 ) {
-				parent.Files.Add(parts[0], bytes);
+				parent.AddFile(parts[0], bytes);
 				return;
 			}
 			CreateFile(GetDirectoryOrThrow(parent, parts[0]), parts.Slice(1), bytes);
@@ -76,7 +119,7 @@ namespace BackupUtility.Tests.Mocks {
 				ThrowCommonException();
 			}
 			if ( dirs.Length == 1 ) {
-				parent.Directories.Remove(dirs[0]);
+				parent.RemoveDirectory(dirs[0]);
 				return;
 			}
 			DeleteDirectory(GetDirectoryOrThrow(parent, dirs[0]), dirs.Slice(1));
@@ -92,19 +135,19 @@ namespace BackupUtility.Tests.Mocks {
 				ThrowCommonException();
 			}
 			if ( dirs.Length == 1 ) {
-				parent.Files.Remove(dirs[0]);
+				parent.RemoveFile(dirs[0]);
 				return;
 			}
 			DeleteFile(GetDirectoryOrThrow(parent, dirs[0]), dirs.Slice(1));
 		}
 
 		public Task<IEnumerable<string>> GetDirectories(string directoryPath) {
-			IEnumerable<string> dirs = GetDirectoryOrThrow(_root, directoryPath.Split(Delimiter)).Directories.Keys;
+			IEnumerable<string> dirs = GetDirectoryOrThrow(_root, directoryPath.Split(Delimiter)).Directories;
 			return Task.FromResult(dirs);
 		}
 
 		public Task<IEnumerable<string>> GetFiles(string directoryPath) {
-			IEnumerable<string> files = GetDirectoryOrThrow(_root, directoryPath.Split(Delimiter)).Files.Keys;
+			IEnumerable<string> files = GetDirectoryOrThrow(_root, directoryPath.Split(Delimiter)).Files;
 			return Task.FromResult(files);
 		}
 
@@ -117,7 +160,7 @@ namespace BackupUtility.Tests.Mocks {
 				return true;
 			}
 			MockDirectory cur;
-			if ( !parent.Directories.TryGetValue(dirs[0], out cur) ) {
+			if ( !parent.TryGetDirectory(dirs[0], out cur) ) {
 				return false;
 			}
 			return IsDirectoryExists(cur, dirs.Slice(1));
@@ -132,10 +175,10 @@ namespace BackupUtility.Tests.Mocks {
 				return true;
 			}
 			if ( dirs.Length == 1 ) {
-				return parent.Files.ContainsKey(dirs[0]);
+				return parent.ContainsFile(dirs[0]);
 			}
 			MockDirectory cur;
-			if ( !parent.Directories.TryGetValue(dirs[0], out cur) ) {
+			if ( !parent.TryGetDirectory(dirs[0], out cur) ) {
 				return false;
 			}
 			return IsFileExists(cur, dirs.Slice(1));
@@ -150,7 +193,7 @@ namespace BackupUtility.Tests.Mocks {
 				ThrowCommonException();
 			}
 			if ( parts.Length == 1 ) {
-				if ( parent.Files.TryGetValue(parts[0], out var bytes) ) {
+				if ( parent.TryGetFile(parts[0], out var bytes) ) {
 					return bytes;
 				}
 				ThrowCommonException();
@@ -160,7 +203,7 @@ namespace BackupUtility.Tests.Mocks {
 
 		MockDirectory GetDirectoryOrThrow(MockDirectory parent, string name) {
 			MockDirectory cur;
-			if ( !parent.Directories.TryGetValue(name, out cur) ) {
+			if ( !parent.TryGetDirectory(name, out cur) ) {
 				ThrowCommonException();
 			}
 			return cur;

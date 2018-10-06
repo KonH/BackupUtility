@@ -100,6 +100,22 @@ namespace BackupUtility.Tests {
 			var files = await _manager.GetFiles(_root);
 			Assert.Contains("newFile", files);
 		}
+
+		[Fact]
+		public async void CantCreateDirectoryOverFile() {
+			var path = _manager.CombinePath(_root, "temp");
+			await _manager.CreateFile(path, new byte[0]);
+			var ex = await Record.ExceptionAsync(() => _manager.CreateDirectory(path));
+			Assert.NotNull(ex);
+		}
+
+		[Fact]
+		public async void CantCreateFileOverDirectory() {
+			var path = _manager.CombinePath(_root, "temp");
+			await _manager.CreateDirectory(path);
+			var ex = await Record.ExceptionAsync(() => _manager.CreateFile(path, new byte[0]));
+			Assert.NotNull(ex);
+		}
 	}
 
 	public class MockFsTests : FsTests {

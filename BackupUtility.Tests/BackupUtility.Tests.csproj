@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.1</TargetFramework>
@@ -16,4 +16,8 @@
     <ProjectReference Include="..\BackupUtility.Core\BackupUtility.Core.csproj" />
   </ItemGroup>
 
+  <Target Name="PrintReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences">
+	<Message Text="@(_ResolveAssemblyReferenceResolvedFiles)" Importance="high" />
+  </Target>
+  
 </Project>

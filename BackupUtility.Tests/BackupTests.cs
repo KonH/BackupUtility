@@ -2,6 +2,7 @@
 using BackupUtility.Core.BackupManager;
 using BackupUtility.Tests.Mocks;
 using Xunit;
+using BackupUtility.Core.Extensions;
 
 namespace BackupUtility.Tests {
 	public class BackupTests {
@@ -47,6 +48,16 @@ namespace BackupUtility.Tests {
 			await backup.Dump(new string[] { fullSourceDir }, backupDir);
 			Assert.True(await _fs.IsDirectoryExists(backupDir));
 			Assert.True(await _fs.IsFileExists(_fs.CombinePath(backupDir, sourceDir, fileToBackup)));
+		}
+
+		[Fact]
+		void FileChangeValidatorReturnsTrueOnDifferentData() {
+			Assert.True(new FileChangeValidator().IsFileChanged(new byte[] { 41 }, new byte[] { 42 }));
+		}
+
+		[Fact]
+		void FileChangeValidatorReturnsFalseOnSameData() {
+			Assert.False(new FileChangeValidator().IsFileChanged(new byte[] { 42 }, new byte[] { 42 }));
 		}
 	}
 }

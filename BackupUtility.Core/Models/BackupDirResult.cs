@@ -10,6 +10,7 @@ namespace BackupUtility.Core.Models {
 		public int TotalResults   => Results.Count;
 		public int SuccessResults => Results.Count(r => r.Success);
 		public int FailedResults  => Results.Count(r => !r.Success);
+		public int SkippedResults => Results.Count(r => r.Skipped);
 
 		public BackupDirResult(string sourcePath, string destPath, List<BackupFileResult> results) {
 			SourcePath = sourcePath;
@@ -18,7 +19,7 @@ namespace BackupUtility.Core.Models {
 		}
 
 		public override string ToString() {
-			return $"'{SourcePath}' => '{DestPath}': {SuccessResults}/{TotalResults}";
+			return $"'{SourcePath}' => '{DestPath}': total: {TotalResults}, failed: {FailedResults} skipped: {SkippedResults}";
 		}
 	}
 }

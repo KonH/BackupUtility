@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
@@ -25,9 +26,11 @@ namespace BackupUtility.Core.BackupManager {
 
 		public async Task Dump(IEnumerable<string> sourceDirs, string backupDir) {
 			_logger?.LogInformation($"Dump directories: [{string.Join(',', sourceDirs)}] into '{backupDir}'");
+			var sw = Stopwatch.StartNew();
 			await EnsureBackupDirectory(backupDir);
 			var results = await Task.WhenAll(sourceDirs.Select(sourceDir => DumpSourceDir(sourceDir, backupDir)));
-			_logger?.LogInformation($"Dump completed: {FormatResults(results)}");
+			sw.Stop();
+			_logger?.LogInformation($"Dump completed for {sw.Elapsed}: {FormatResults(results)}");
 		}
 
 		async Task<BackupDirResult> DumpSourceDir(string sourceDir, string backupDir) {

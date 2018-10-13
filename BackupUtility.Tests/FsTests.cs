@@ -116,10 +116,19 @@ namespace BackupUtility.Tests {
 			var ex = await Record.ExceptionAsync(() => _manager.CreateFile(path, new byte[0]));
 			Assert.NotNull(ex);
 		}
+
+		[Fact]
+		public async void NewFileHaveCorrectModificationTime() {
+			var path = _manager.CombinePath(_root, "temp");
+			var dt = DateTime.Now;
+			var deltaSec = 1.0; // safe interval to avoid blinking tests
+			await _manager.CreateFile(path, new byte[0]);
+			Assert.True(Math.Abs((dt - await _manager.GetFileChangeTime(path)).TotalSeconds) <= deltaSec);
+		}
 	}
 
 	public class MockFsTests : FsTests {
-		public MockFsTests() : base("temp", new MockFileManager()) { }
+		public MockFsTests() : base("temp", new MockFileManager(new MockTimeManager(DateTime.Now))) { }
 	}
 
 	public class LocalFsTests : FsTests {

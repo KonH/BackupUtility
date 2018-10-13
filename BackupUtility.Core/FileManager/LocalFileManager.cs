@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -66,6 +67,10 @@ namespace BackupUtility.Core.FileManager {
 
 		public Task<byte[]> ReadAllBytes(string filePath) {
 			return File.ReadAllBytesAsync(filePath);
+		}
+
+		public Task<DateTime> GetFileChangeTime(string filePath) {
+			return Task.FromResult(File.GetLastWriteTime(filePath));
 		}
 	}
 }

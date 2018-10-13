@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace BackupUtility.Core.FileManager {
 	public interface IFileManager {
@@ -10,6 +11,7 @@ namespace BackupUtility.Core.FileManager {
 		Task CreateFile(string filePath, byte[] bytes);
 		Task CopyFile(string fromFilePath, string toFilePath);
 		Task DeleteFile(string filePath);
+		Task<DateTime> GetFileChangeTime(string filePath);
 		Task<bool> IsDirectoryExists(string directoryPath);
 		Task<IEnumerable<string>> GetFiles(string directoryPath);
 		Task<IEnumerable<string>> GetDirectories(string directoryPath);

@@ -1,15 +1,20 @@
-﻿using BackupUtility.Core.FileManager;
+﻿using System;
+using BackupUtility.Core.FileManager;
 using BackupUtility.Core.BackupManager;
 using BackupUtility.Tests.Mocks;
-using Xunit;
 using BackupUtility.Core.Extensions;
+using BackupUtility.Core.TimeManager;
+using Xunit;
 
 namespace BackupUtility.Tests {
 	public class BackupTests {
-		readonly IFileManager _fs = new MockFileManager();
+		ITimeManager   _time;
+		IFileManager   _fs;
 		IBackupManager _backup;
 
 		public BackupTests() {
+			_time   = new MockTimeManager(DateTime.MinValue);
+			_fs     = new MockFileManager(_time);
 			_backup = new BackupManager(_fs, _fs);
 		}
 

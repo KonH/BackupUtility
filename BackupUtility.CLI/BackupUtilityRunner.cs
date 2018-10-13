@@ -35,6 +35,8 @@ namespace BackupUtility.CLI {
 			foreach ( var result in results ) {
 				WriteBackupResults(result);
 			}
+			var totalDuration = results.Select(r => r.Duration).Aggregate(TimeSpan.Zero, (d, acc) => acc.Add(d));
+			WriteLineWithColor($"Done {results.Count} tasks for {totalDuration}", ConsoleColor.Yellow);
 		}
 
 		ILoggerFactory ConfigureLogging(BackupUtilityConfiguration config) {

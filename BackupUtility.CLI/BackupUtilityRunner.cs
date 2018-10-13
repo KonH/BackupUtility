@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -154,6 +155,21 @@ namespace BackupUtility.CLI {
 				LoggerFactory.CreateLogger<BackupManager>()
 			);
 			var task = manager.Dump(backupTask.SourceDir, backupTask.DestinationDir);
+			Task.Run(async () => {
+				while ( true ) {
+					await Task.Delay(5000);
+					var progress = manager.GetLatestProgress();
+					if ( progress.Done ) {
+						return;
+					}
+					var mbs = progress.Bytes / 1024 / 1024;
+					var secs = progress.Elapsed.TotalSeconds;
+					Console.WriteLine(
+						$"Files: {progress.Files}, MBs: {mbs}, elapsed: {progress.Elapsed} " +
+						$"[{(secs > 0 ? Math.Round(mbs/secs, 2) : -1.0)} MB/sec]"
+					);
+				}
+			});
 			task.ConfigureAwait(true);
 			var result = task.Result;
 

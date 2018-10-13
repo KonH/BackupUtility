@@ -16,6 +16,9 @@ namespace BackupUtility.Core.BackupManager {
 		readonly HistoryProvider        _historyProvider;
 		readonly ILogger<BackupManager> _logger;
 
+		Stopwatch      _stopWatch;
+		BackupProgress _progress;
+
 		public BackupManager(
 			IFileManager           source,
 			IFileManager           destination,
@@ -31,6 +34,7 @@ namespace BackupUtility.Core.BackupManager {
 		}
 
 		public async Task<BackupDirResult> Dump(string sourceDir, string backupDir) {
+			_progress = new BackupProgress();
 			_logger?.LogInformation($"Dump directory: '{sourceDir}' into '{backupDir}'");
 			_source.Connect();
 			_destination.Connect();
@@ -42,12 +46,13 @@ namespace BackupUtility.Core.BackupManager {
 		}
 
 		async Task<BackupDirResult> DumpSourceDir(string sourceDir, string backupDir) {
-			var sw = Stopwatch.StartNew();
+			_stopWatch = Stopwatch.StartNew();
 			_logger?.LogDebug($"DumpSourceDir: '{sourceDir}' => '{backupDir}'");
 			var shortSourceDir = _source.GetDirectoryName(sourceDir);
 			var results = await DumpDirectory(sourceDir, _destination.CombinePath(backupDir, shortSourceDir));
-			sw.Stop();
-			var result = new BackupDirResult(sourceDir, backupDir, results, sw.Elapsed);
+			_stopWatch.Stop();
+			_progress.Finish();
+			var result = new BackupDirResult(sourceDir, backupDir, results, _stopWatch.Elapsed);
 			_logger?.LogDebug($"DumpSourceDir: {result}");
 			return result;
 		}
@@ -83,6 +88,7 @@ namespace BackupUtility.Core.BackupManager {
 					var destContent = await _destination.ReadAllBytes(destPath);
 					if ( IsNeedToSkipFile(sourceContent, destContent) ) {
 						_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
+						AdvanceFileProgress(sourceContent.Length);
 						return new BackupFileResult(sourcePath, destPath, skipped: true);
 					}
 					await TryMoveOldCopyToHistory(backupDir, sourceFile, destContent);
@@ -91,6 +97,7 @@ namespace BackupUtility.Core.BackupManager {
 
 				await _destination.CreateFile(destPath, sourceContent);
 				_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): success");
+				AdvanceFileProgress(sourceContent.Length);
 				return new BackupFileResult(sourcePath, destPath);
 			} catch ( Exception e ) {
 				_logger?.LogWarning($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): {e}");
@@ -148,6 +155,14 @@ namespace BackupUtility.Core.BackupManager {
 
 		static string FormatResults(IEnumerable<BackupFileResult> results) {
 			return $"[{string.Join(',', results)}]";
+		}
+
+		void AdvanceFileProgress(int bytes) {
+			_progress.Advance(bytes, _stopWatch.Elapsed);
+		}
+
+		public BackupProgress GetLatestProgress() {
+			return _progress;
 		}
 	}
 }

@@ -3,6 +3,10 @@
 	[
 		{
 			"type": "Console",
+			"level": "Warning"
+		},
+		{
+			"type": "File",
 			"level": "Debug"
 		}
 	],

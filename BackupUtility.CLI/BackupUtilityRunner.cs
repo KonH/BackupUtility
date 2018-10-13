@@ -47,7 +47,7 @@ namespace BackupUtility.CLI {
 						break;
 
 					case LogType.File: {
-							// TODO
+							loggerFactory.AddFile("{Date}.txt", log.Level);
 						}
 						break;
 				}

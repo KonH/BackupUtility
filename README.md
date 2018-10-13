@@ -2,7 +2,14 @@
 
 Utility to backup files using .NET core.
 
-## TODO
+Features:
+- Save last 3 copies of each file in directory beside
+- SFTP support using SSH.NET
+- Simple JSON file based configuration
+- Skip non-changed files
+- Fast implementation based on async operations (partially)
 
- - Add CLI config.
- - Set logging from CLI as optional.
+Limitations and ways of extension:
+- Support only password auth for SFTP
+- Don't support ignore lists
+- Not designed to backup really large files, can raise out of memory

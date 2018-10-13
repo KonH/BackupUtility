@@ -1,0 +1,28 @@
+﻿{
+	"logging": 
+	[
+		{
+			"type": "Console",
+			"level": "Debug"
+		}
+	],
+	"sftp": {
+		"host1": {
+			"host": "127.0.0.1",
+			"userName": "",
+			"password": ""
+		}
+	},
+	"backup": [
+		{
+			"from": {
+				"path": "root/child",
+				"mode": "Local"
+			},
+			"to": {
+				"path": "backup",
+				"mode": "Local"
+			}
+		}
+	]
+}

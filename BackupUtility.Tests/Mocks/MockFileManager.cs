@@ -83,6 +83,9 @@ namespace BackupUtility.Tests.Mocks {
 			_time = time;
 		}
 
+		public void Connect() { }
+		public void Disconnect() { }
+
 		public string CombinePath(params string[] parts) {
 			return string.Join(Delimiter, parts);
 		}

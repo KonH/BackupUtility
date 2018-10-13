@@ -17,8 +17,8 @@ namespace BackupUtility.CLI {
 			var historyProvider = new DefaultHistoryProvider(new RealTimeManager(), 3);
 			var loggerFactory = new LoggerFactory()
 				.AddConsole(LogLevel.Debug);
-			var logger = loggerFactory.CreateLogger<BackupManager>();
-			_manager = new BackupManager(_localFs, _localFs, historyProvider, changeValidator, logger);
+			var managerLogger = loggerFactory.CreateLogger<BackupManager>();
+			_manager = new BackupManager(_localFs, _localFs, historyProvider, changeValidator, managerLogger);
 			EntryPont();
 		}
 

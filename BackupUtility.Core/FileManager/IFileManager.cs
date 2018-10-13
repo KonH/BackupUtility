@@ -4,6 +4,8 @@ using System.Collections.Generic;
 
 namespace BackupUtility.Core.FileManager {
 	public interface IFileManager {
+		void Connect();
+		void Disconnect();
 		string CombinePath(params string[] parts);
 		string GetDirectoryName(string fullPath);
 		Task<bool> IsFileExists(string filePath);

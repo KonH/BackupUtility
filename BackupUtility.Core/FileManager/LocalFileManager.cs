@@ -6,6 +6,9 @@ using System.Collections.Generic;
 
 namespace BackupUtility.Core.FileManager {
 	public class LocalFileManager : IFileManager {
+		public void Connect() { }
+		public void Disconnect() { }
+
 		public string CombinePath(params string[] parts) {
 			return Path.Combine(parts);
 		}
@@ -70,7 +73,7 @@ namespace BackupUtility.Core.FileManager {
 		}
 
 		public Task<DateTime> GetFileChangeTime(string filePath) {
-			return Task.FromResult(File.GetLastWriteTime(filePath));
+			return Task.FromResult(File.GetLastWriteTimeUtc(filePath));
 		}
 	}
 }

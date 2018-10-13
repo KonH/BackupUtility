@@ -32,8 +32,13 @@ namespace BackupUtility.Core.BackupManager {
 
 		public async Task<BackupDirResult> Dump(string sourceDir, string backupDir) {
 			_logger?.LogInformation($"Dump directory: '{sourceDir}' into '{backupDir}'");
+			_source.Connect();
+			_destination.Connect();
 			await EnsureBackupDirectory(backupDir);
-			return await DumpSourceDir(sourceDir, backupDir);
+			var result = await DumpSourceDir(sourceDir, backupDir);
+			_source.Disconnect();
+			_destination.Disconnect();
+			return result;
 		}
 
 		async Task<BackupDirResult> DumpSourceDir(string sourceDir, string backupDir) {

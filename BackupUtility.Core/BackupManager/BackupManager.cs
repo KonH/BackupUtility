@@ -24,13 +24,13 @@ namespace BackupUtility.Core.BackupManager {
 			_logger          = logger;
 		}
 
-		public async Task Dump(IEnumerable<string> sourceDirs, string backupDir) {
-			_logger?.LogInformation($"Dump directories: [{string.Join(',', sourceDirs)}] into '{backupDir}'");
+		public async Task Dump(string sourceDir, string backupDir) {
+			_logger?.LogInformation($"Dump directory: '{sourceDir}' into '{backupDir}'");
 			var sw = Stopwatch.StartNew();
 			await EnsureBackupDirectory(backupDir);
-			var results = await Task.WhenAll(sourceDirs.Select(sourceDir => DumpSourceDir(sourceDir, backupDir)));
+			var result = await DumpSourceDir(sourceDir, backupDir);
 			sw.Stop();
-			_logger?.LogInformation($"Dump completed for {sw.Elapsed}: {FormatResults(results)}");
+			_logger?.LogInformation($"Dump completed for {sw.Elapsed}: {result}");
 		}
 
 		async Task<BackupDirResult> DumpSourceDir(string sourceDir, string backupDir) {
@@ -92,10 +92,6 @@ namespace BackupUtility.Core.BackupManager {
 			var sourceSubDir = _source.CombinePath(sourceDir, subDir);
 			var destSubDir = _destination.CombinePath(backupDir, subDir);
 			return DumpDirectory(sourceSubDir, destSubDir);
-		}
-
-		static string FormatResults(IEnumerable<BackupDirResult> results) {
-			return $"[{string.Join(',', results)}]";
 		}
 
 		static string FormatResults(IEnumerable<BackupFileResult> results) {

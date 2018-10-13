@@ -7,6 +7,11 @@ using BackupUtility.Core.Extensions;
 namespace BackupUtility.Tests {
 	public class BackupTests {
 		readonly IFileManager _fs = new MockFileManager();
+		IBackupManager _backup;
+
+		public BackupTests() {
+			_backup = new BackupManager(_fs, _fs);
+		}
 
 		[Fact]
 		public async void FilesInDirectoryBackedUp() {
@@ -15,8 +20,7 @@ namespace BackupUtility.Tests {
 			var fileToBackup = "file";
 			await _fs.CreateDirectory(sourceDir);
 			await _fs.CreateFile(_fs.CombinePath(sourceDir, fileToBackup), new byte[0]);
-			var backup = new BackupManager(_fs, _fs);
-			await backup.Dump(new string[] { sourceDir }, backupDir);
+			await _backup.Dump(sourceDir, backupDir);
 			Assert.True(await _fs.IsDirectoryExists(backupDir));
 			Assert.True(await _fs.IsFileExists(_fs.CombinePath(backupDir, sourceDir, fileToBackup)));
 		}
@@ -29,8 +33,7 @@ namespace BackupUtility.Tests {
 			await _fs.CreateDirectory(sourceDir);
 			await _fs.CreateDirectory(_fs.CombinePath(sourceDir, "subdir"));
 			await _fs.CreateFile(_fs.CombinePath(sourceDir, "subdir", fileToBackup), new byte[0]);
-			var backup = new BackupManager(_fs, _fs);
-			await backup.Dump(new string[] { sourceDir }, backupDir);
+			await _backup.Dump(sourceDir, backupDir);
 			Assert.True(await _fs.IsDirectoryExists(backupDir));
 			Assert.True(await _fs.IsFileExists(_fs.CombinePath(backupDir, sourceDir, "subdir", fileToBackup)));
 		}
@@ -44,8 +47,7 @@ namespace BackupUtility.Tests {
 			var fullSourceDir = _fs.CombinePath(parentSourceDir, sourceDir);
 			await _fs.CreateDirectory(fullSourceDir);
 			await _fs.CreateFile(_fs.CombinePath(fullSourceDir, fileToBackup), new byte[0]);
-			var backup = new BackupManager(_fs, _fs);
-			await backup.Dump(new string[] { fullSourceDir }, backupDir);
+			await _backup.Dump(fullSourceDir, backupDir);
 			Assert.True(await _fs.IsDirectoryExists(backupDir));
 			Assert.True(await _fs.IsFileExists(_fs.CombinePath(backupDir, sourceDir, fileToBackup)));
 		}

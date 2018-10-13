@@ -20,8 +20,8 @@ namespace BackupUtility.CLI {
 		}
 
 		static async Task EntryPont() {
-			var sources = new string[] { _localFs.CombinePath("root", "child") };
-			await _manager.Dump(sources, "backup");
+			var source = _localFs.CombinePath("root", "child");
+			await _manager.Dump(source, "backup");
 			Console.ReadKey();
 		}
 	}

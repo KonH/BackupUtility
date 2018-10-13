@@ -75,7 +75,8 @@ namespace BackupUtility.CLI {
 			Console.WriteLine("- Backup:");
 			foreach ( var backup in instance.Backup ) {
 				Console.WriteLine(
-					$" - - from: '{backup.From.Path}' ({backup.From.Mode}, '{backup.From.Host}'), " +
+					$" - - from: '{backup.From.Path}' [{string.Join(", ", backup.From.Pathes)}] " +
+					$"({backup.From.Mode}, '{backup.From.Host}'), " +
 					$"to: '{backup.To.Path}' ({backup.To.Mode}, '{backup.To.Host}')");
 			}
 			Console.WriteLine();
@@ -94,15 +95,29 @@ namespace BackupUtility.CLI {
 				if ( destFs == null ) {
 					return null;
 				}
-				var task = new BackupTask(
-					backup.From.Path,
-					backup.To.Path,
-					sourceFs,
-					destFs,
-					new DefaultHistoryProvider(time, 3),
-					new FileChangeValidator()
-				);
-				tasks.Add(task);
+				var fromPathes = backup.From.Pathes;
+				if ( fromPathes.Count == 0 ) {
+					fromPathes = new List<string> { backup.From.Path };
+				}
+				foreach ( var path in fromPathes ) {
+					if ( string.IsNullOrEmpty(path) ) {
+						WriteLineWithColor("Empty source path!", ConsoleColor.Red);
+						return null;
+					}
+					if ( string.IsNullOrEmpty(backup.To.Path) ) {
+						WriteLineWithColor("Empty destination path!", ConsoleColor.Red);
+						return null;
+					}
+					var task = new BackupTask(
+						path,
+						backup.To.Path,
+						sourceFs,
+						destFs,
+						new DefaultHistoryProvider(time, 3),
+						new FileChangeValidator()
+					);
+					tasks.Add(task);
+				}
 			}
 			return tasks;
 		}

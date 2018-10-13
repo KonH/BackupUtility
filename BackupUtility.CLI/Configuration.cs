@@ -24,9 +24,10 @@ namespace BackupUtility.CLI {
 	}
 
 	class FileSystemOptions {
-		public string         Path { get; set; }
-		public FileSystemMode Mode { get; set; }
-		public string         Host { get; set; }
+		public string         Path   { get; set; }
+		public List<string>   Pathes { get; set; } = new List<string>(); // Optional
+		public FileSystemMode Mode   { get; set; }
+		public string         Host   { get; set; }
 	}
 
 	class BackupOptions {

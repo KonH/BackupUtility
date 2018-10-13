@@ -13,3 +13,4 @@ Limitations and ways of extension:
 - Support only password auth for SFTP
 - Don't support ignore lists
 - Not designed to backup really large files, can raise out of memory
+- Progress tracking can be useful

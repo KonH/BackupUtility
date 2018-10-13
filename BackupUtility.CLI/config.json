@@ -27,6 +27,16 @@
 				"path": "backup",
 				"mode": "Local"
 			}
+		},
+		{
+			"from": {
+				"pathes": [ "root/p1", "root/p2" ],
+				"mode": "Local"
+			},
+			"to": {
+				"path": "backup",
+				"mode": "Local"
+			}
 		}
 	]
 }

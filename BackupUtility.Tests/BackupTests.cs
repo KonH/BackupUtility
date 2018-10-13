@@ -15,7 +15,7 @@ namespace BackupUtility.Tests {
 		public BackupTests() {
 			_time   = new MockTimeManager(DateTime.MinValue);
 			_fs     = new MockFileManager(_time);
-			_backup = new BackupManager(_fs, _fs);
+			_backup = new BackupManager(_fs, _fs, null, null, null);
 		}
 
 		[Fact]
@@ -58,12 +58,12 @@ namespace BackupUtility.Tests {
 		}
 
 		[Fact]
-		void FileChangeValidatorReturnsTrueOnDifferentData() {
+		public void FileChangeValidatorReturnsTrueOnDifferentData() {
 			Assert.True(new FileChangeValidator().IsFileChanged(new byte[] { 41 }, new byte[] { 42 }));
 		}
 
 		[Fact]
-		void FileChangeValidatorReturnsFalseOnSameData() {
+		public void FileChangeValidatorReturnsFalseOnSameData() {
 			Assert.False(new FileChangeValidator().IsFileChanged(new byte[] { 42 }, new byte[] { 42 }));
 		}
 	}

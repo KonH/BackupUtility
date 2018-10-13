@@ -10,7 +10,7 @@ namespace BackupUtility.Tests.Mocks {
 		}
 
 		public void Advance(TimeSpan span) {
-			CurrentTime.Add(span);
+			CurrentTime = CurrentTime.Add(span);
 		}
 	}
 }

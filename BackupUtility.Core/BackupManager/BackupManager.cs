@@ -13,13 +13,19 @@ namespace BackupUtility.Core.BackupManager {
 		readonly IFileManager           _source;
 		readonly IFileManager           _destination;
 		readonly FileChangeValidator    _changeValidator;
+		readonly HistoryProvider        _historyProvider;
 		readonly ILogger<BackupManager> _logger;
 
 		public BackupManager(
-			IFileManager source, IFileManager destination,
-			FileChangeValidator changeValidator = null, ILogger<BackupManager> logger = null) {
+			IFileManager           source,
+			IFileManager           destination,
+			HistoryProvider        historyProvider, 
+			FileChangeValidator    changeValidator,
+			ILogger<BackupManager> logger
+		) {
 			_source          = source;
 			_destination     = destination;
+			_historyProvider = historyProvider;
 			_changeValidator = changeValidator;
 			_logger          = logger;
 		}
@@ -70,15 +76,15 @@ namespace BackupUtility.Core.BackupManager {
 			try {
 				var sourceContent = await _source.ReadAllBytes(sourcePath);
 				if ( await _destination.IsFileExists(destPath) ) {
-					if ( _changeValidator != null ) {
-						var destContent = await _destination.ReadAllBytes(destPath);
-						if ( !_changeValidator.IsFileChanged(sourceContent, destContent) ) {
-							_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
-							return new BackupFileResult(sourcePath, destPath, skipped: true);
-						}
+					var destContent = await _destination.ReadAllBytes(destPath);
+					if ( IsNeedToSkipFile(sourceContent, destContent) ) {
+						_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
+						return new BackupFileResult(sourcePath, destPath, skipped: true);
 					}
+					await TryMoveOldCopyToHistory(backupDir, sourceFile, destContent);
 					await _destination.DeleteFile(destPath);
 				}
+
 				await _destination.CreateFile(destPath, sourceContent);
 				_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): success");
 				return new BackupFileResult(sourcePath, destPath);
@@ -86,6 +92,48 @@ namespace BackupUtility.Core.BackupManager {
 				_logger?.LogWarning($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): {e}");
 				return new BackupFileResult(sourcePath, destPath, exception: e);
 			}
+		}
+
+		bool IsNeedToSkipFile(byte[] sourceContent, byte[] destContent) {
+			if ( _changeValidator != null ) {
+				return !_changeValidator.IsFileChanged(sourceContent, destContent);
+			}
+			return false;
+		}
+
+		async Task TryMoveOldCopyToHistory(string backupDir, string sourceFile, byte[] destContent) {
+			if ( _historyProvider == null ) {
+				return;
+			}
+			var historyDirName = _historyProvider.ConvertFileNameToHistoryDirectoryName(sourceFile);
+			var historyDirPath = _destination.CombinePath(backupDir, historyDirName);
+			if ( await _destination.IsDirectoryExists(historyDirPath) ) {
+				await TryCleanupHistoryDirectory(historyDirPath);
+			} else {
+				await _destination.CreateDirectory(historyDirPath);
+			}
+			var nameInHistory = _historyProvider.ConvertFileNameToVersionedFileName(sourceFile);
+			var pathInHistory = _destination.CombinePath(historyDirPath, nameInHistory);
+			_logger?.LogDebug($"TryMoveOldCopyToHistory('{backupDir}', '{sourceFile}'): create file in history: '{pathInHistory}'");
+			await _destination.CreateFile(pathInHistory, destContent);
+		}
+
+		async Task TryCleanupHistoryDirectory(string historyDirPath) {
+			do {
+				var files = new List<string>(await _destination.GetFiles(historyDirPath));
+				if ( files.Count < _historyProvider.Depth ) {
+					break;
+				}
+				var timeRequests = files.Select(
+					(name) => _destination.GetFileChangeTime(_destination.CombinePath(historyDirPath, name))
+				);
+				var fileTimes = await Task.WhenAll(timeRequests);
+				var minTimeIndex = Array.IndexOf(fileTimes, fileTimes.Min());
+				var minTimeName = files[minTimeIndex];
+				var minTimePath = _destination.CombinePath(historyDirPath, minTimeName);
+				_logger?.LogDebug($"TryCleanupHistoryDirectory('{historyDirPath}'): delete oldest copy: '{minTimePath}'");
+				await _destination.DeleteFile(minTimePath);
+			} while ( true );
 		}
 
 		Task<List<BackupFileResult>> DumpSubDirectory(string sourceDir, string backupDir, string subDir) {

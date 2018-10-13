@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using BackupUtility.Core.Models;
 using BackupUtility.Core.FileManager;
 using BackupUtility.Core.Extensions;
+using System.Threading;
 
 namespace BackupUtility.Core.BackupManager {
 	public class BackupManager : IBackupManager {
@@ -19,18 +20,23 @@ namespace BackupUtility.Core.BackupManager {
 		Stopwatch      _stopWatch;
 		BackupProgress _progress;
 
+		int _currentConcurrentFileDumps = 0;
+		int _concurrentFileDumpLimit    = 0;
+
 		public BackupManager(
 			IFileManager           source,
 			IFileManager           destination,
 			HistoryProvider        historyProvider, 
 			FileChangeValidator    changeValidator,
-			ILogger<BackupManager> logger
+			ILogger<BackupManager> logger,
+			int                    concurrentFileDumpLimit = -1
 		) {
-			_source          = source;
-			_destination     = destination;
-			_historyProvider = historyProvider;
-			_changeValidator = changeValidator;
-			_logger          = logger;
+			_source                  = source;
+			_destination             = destination;
+			_historyProvider         = historyProvider;
+			_changeValidator         = changeValidator;
+			_logger                  = logger;
+			_concurrentFileDumpLimit = concurrentFileDumpLimit;
 		}
 
 		public async Task<BackupDirResult> Dump(string sourceDir, string backupDir) {
@@ -79,6 +85,9 @@ namespace BackupUtility.Core.BackupManager {
 		}
 
 		async Task<BackupFileResult> DumpFile(string sourceDir, string backupDir, string sourceFile) {
+			while ( !TryStartNewDump() ) {
+				await Task.Delay(100);
+			}
 			_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}')");
 			var sourcePath = _source.CombinePath(sourceDir, sourceFile);
 			var destPath = _destination.CombinePath(backupDir, sourceFile);
@@ -89,6 +98,7 @@ namespace BackupUtility.Core.BackupManager {
 					if ( IsNeedToSkipFile(sourceContent, destContent) ) {
 						_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
 						AdvanceFileProgress(sourceContent.Length);
+						StopDump();
 						return new BackupFileResult(sourcePath, destPath, skipped: true);
 					}
 					await TryMoveOldCopyToHistory(backupDir, sourceFile, destContent);
@@ -98,11 +108,29 @@ namespace BackupUtility.Core.BackupManager {
 				await _destination.CreateFile(destPath, sourceContent);
 				_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): success");
 				AdvanceFileProgress(sourceContent.Length);
+				StopDump();
 				return new BackupFileResult(sourcePath, destPath);
 			} catch ( Exception e ) {
 				_logger?.LogWarning($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): {e}");
+				StopDump();
 				return new BackupFileResult(sourcePath, destPath, exception: e);
 			}
+		}
+
+		bool TryStartNewDump() {
+			if ( _concurrentFileDumpLimit < 0 ) {
+				return true;
+			}
+			var concurrentFileDumps = _currentConcurrentFileDumps;
+			if ( concurrentFileDumps < _concurrentFileDumpLimit ) {
+				Interlocked.Increment(ref _currentConcurrentFileDumps);
+				return true;
+			}
+			return false;
+		}
+
+		void StopDump() {
+			Interlocked.Decrement(ref _currentConcurrentFileDumps);
 		}
 
 		bool IsNeedToSkipFile(byte[] sourceContent, byte[] destContent) {

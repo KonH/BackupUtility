@@ -65,6 +65,8 @@ namespace BackupUtility.CLI {
 			configRoot.Bind(instance);
 
 			WriteLineWithColor("Current configuration:", ConsoleColor.Yellow);
+			Console.WriteLine("- Common:");
+			Console.WriteLine($"- - MaxConcurrentDumps: {instance.Common.MaxConcurrentDumps}");
 			Console.WriteLine("- Logging:");
 			foreach ( var logging in instance.Logging ) {
 				Console.WriteLine($"- - {logging.Type}: {logging.Level}");

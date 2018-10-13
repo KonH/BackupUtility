@@ -22,7 +22,7 @@ namespace BackupUtility.Core.Models {
 		}
 
 		public override string ToString() {
-			return $"'{SourcePath}' => '{DestPath}': total: {TotalResults}, failed: {FailedResults} skipped: {SkippedResults}, duration: {Duration}";
+			return $"'{SourcePath}' => '{DestPath}': total: {TotalResults}, failed: {FailedResults}, skipped: {SkippedResults}, duration: {Duration}";
 		}
 	}
 }

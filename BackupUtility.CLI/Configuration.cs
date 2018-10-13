@@ -2,6 +2,10 @@
 using Microsoft.Extensions.Logging;
 
 namespace BackupUtility.CLI {
+	class CommonOptions {
+		public int MaxConcurrentDumps { get; set; } = -1;
+	}
+
 	enum LogType {
 		Console,
 		File,
@@ -36,6 +40,7 @@ namespace BackupUtility.CLI {
 	}
 
 	class BackupUtilityConfiguration {
+		public CommonOptions                   Common  { get; set; } = new CommonOptions();
 		public List<LoggingOptions>            Logging { get; set; } = new List<LoggingOptions>();
 		public Dictionary<string, SftpOptions> Sftp    { get; set; } = new Dictionary<string, SftpOptions>();
 		public List<BackupOptions>             Backup  { get; set; } = new List<BackupOptions>();

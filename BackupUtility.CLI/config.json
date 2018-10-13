@@ -1,6 +1,8 @@
 ﻿{
-	"logging": 
-	[
+	"common": {
+		"maxConcurrentDumps": 4
+	},
+	"logging": [
 		{
 			"type": "Console",
 			"level": "Warning"

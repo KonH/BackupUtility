@@ -7,4 +7,3 @@ Utility to backup files using .NET core.
  - Use SFTP.
  - Add CLI config.
  - Set logging from CLI as optional.
- - Move result to console output without logging.

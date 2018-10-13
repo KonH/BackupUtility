@@ -30,20 +30,19 @@ namespace BackupUtility.Core.BackupManager {
 			_logger          = logger;
 		}
 
-		public async Task Dump(string sourceDir, string backupDir) {
+		public async Task<BackupDirResult> Dump(string sourceDir, string backupDir) {
 			_logger?.LogInformation($"Dump directory: '{sourceDir}' into '{backupDir}'");
-			var sw = Stopwatch.StartNew();
 			await EnsureBackupDirectory(backupDir);
-			var result = await DumpSourceDir(sourceDir, backupDir);
-			sw.Stop();
-			_logger?.LogInformation($"Dump completed for {sw.Elapsed}: {result}");
+			return await DumpSourceDir(sourceDir, backupDir);
 		}
 
 		async Task<BackupDirResult> DumpSourceDir(string sourceDir, string backupDir) {
+			var sw = Stopwatch.StartNew();
 			_logger?.LogDebug($"DumpSourceDir: '{sourceDir}' => '{backupDir}'");
 			var shortSourceDir = _source.GetDirectoryName(sourceDir);
 			var results = await DumpDirectory(sourceDir, _destination.CombinePath(backupDir, shortSourceDir));
-			var result = new BackupDirResult(sourceDir, backupDir, results);
+			sw.Stop();
+			var result = new BackupDirResult(sourceDir, backupDir, results, sw.Elapsed);
 			_logger?.LogDebug($"DumpSourceDir: {result}");
 			return result;
 		}

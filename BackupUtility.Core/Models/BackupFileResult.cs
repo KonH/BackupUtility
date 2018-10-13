@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace BackupUtility.Core.Models {
-	class BackupFileResult {
+	public class BackupFileResult {
 		public string    SourcePath { get; } 
 		public string    DestPath   { get; }
 		public bool      Skipped    { get; }

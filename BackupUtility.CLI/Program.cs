@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading.Tasks;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using BackupUtility.Core.BackupManager;
 using BackupUtility.Core.FileManager;
@@ -19,13 +19,30 @@ namespace BackupUtility.CLI {
 				.AddConsole(LogLevel.Debug);
 			var logger = loggerFactory.CreateLogger<BackupManager>();
 			_manager = new BackupManager(_localFs, _localFs, historyProvider, changeValidator, logger);
-			EntryPont().Wait();
+			EntryPont();
 		}
 
-		static async Task EntryPont() {
+		static void EntryPont() {
+			Console.WriteLine("Starting backup.");
+			Console.WriteLine();
+
 			var source = _localFs.CombinePath("root", "child");
-			await _manager.Dump(source, "backup");
+			var task = _manager.Dump(source, "backup");
+			task.ConfigureAwait(true);
+			var result = task.Result;
+
+			Thread.Sleep(100); // hack for console output delay (several messages may overrides)
+
+			Console.WriteLine();
+			WriteLineWithColor("Backup done: " + result, (result.FailedResults > 0) ? ConsoleColor.Red : ConsoleColor.Green);
 			Console.ReadKey();
+		}
+
+		static void WriteLineWithColor(string str, ConsoleColor color) {
+			var startColor = Console.ForegroundColor;
+			Console.ForegroundColor = color;
+			Console.WriteLine(str);
+			Console.ForegroundColor = startColor;
 		}
 	}
 }

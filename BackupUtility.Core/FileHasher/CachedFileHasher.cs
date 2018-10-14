@@ -10,7 +10,10 @@ namespace BackupUtility.Core.FileHasher {
 		readonly string       _cachePath;
 		readonly int          _processedFilesRange;
 
-		int _curProcessedFiles = 0;
+		int  _curProcessedFiles = 0;
+		int  _loadedCount       = 0;
+		bool _saveInProgress    = false;
+
 		Dictionary<string, string> _cache = new Dictionary<string, string>();
 
 		public CachedFileHasher(IFileHasher origin, IFileManager fs, string cachePath, int procesedFilesRange) {
@@ -56,6 +59,7 @@ namespace BackupUtility.Core.FileHasher {
 					var value = parts[1];
 					_cache.Add(key, value);
 				}
+				_loadedCount = _cache.Count;
 			}
 		}
 
@@ -66,7 +70,14 @@ namespace BackupUtility.Core.FileHasher {
 				} else {
 					return;
 				}
+				if ( _cache.Count == _loadedCount ) {
+					return;
+				}
 			}
+			if ( _saveInProgress ) {
+				return;
+			}
+			_saveInProgress = true;
 			var text = new StringBuilder();
 			foreach ( var pair in _cache ) {
 				text = text
@@ -81,6 +92,8 @@ namespace BackupUtility.Core.FileHasher {
 			var str = text.ToString();
 			var bytes = Encoding.UTF8.GetBytes(str);
 			await _fs.CreateFile(_cachePath, bytes);
+			_loadedCount = _cache.Count;
+			_saveInProgress = false;
 		}
 	}
 }

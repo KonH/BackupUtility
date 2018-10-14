@@ -137,6 +137,32 @@ namespace BackupUtility.Tests {
 			await _manager.DeleteDirectory(dirPath);
 			Assert.False(await _manager.IsDirectoryExists(dirPath));
 		}
+
+		[Fact]
+		public async void CanCreateFileWithNonASCIIName() {
+			var filePath = _manager.CombinePath(_root, "BN Bottleneck - школа игры слайдом в стандартном строе.pdf");
+			await _manager.CreateFile(filePath, new byte[] { 42 });
+			Assert.True(await _manager.IsFileExists(filePath));
+		}
+
+		[Fact]
+		public async void CanCreateDirectoryWithNonASCIIName() {
+			var dirPath = _manager.CombinePath(_root, "BN Bottleneck - школа игры слайдом в стандартном строе");
+			await _manager.CreateDirectory(dirPath);
+			Assert.True(await _manager.IsDirectoryExists(dirPath));
+		}
+
+		[Fact]
+		public async void CanCreateFileWithNonASCIINameInSubdirectory() {
+			var dirPath = _manager.CombinePath(_root, "BN Bottleneck - школа игры слайдом в стандартном строе 2");
+			var filePath = _manager.CombinePath(
+				_root,
+				 "BN Bottleneck - школа игры слайдом в стандартном строе 2",
+				"BN Bottleneck - школа игры слайдом в стандартном строе.pdf");
+			await _manager.CreateDirectory(dirPath);
+			await _manager.CreateFile(filePath, new byte[] { 42 });
+			Assert.True(await _manager.IsFileExists(filePath));
+		}
 	}
 
 	public class MockFsTests : FsTests {

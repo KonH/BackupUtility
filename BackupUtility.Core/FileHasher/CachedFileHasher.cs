@@ -79,7 +79,8 @@ namespace BackupUtility.Core.FileHasher {
 			}
 			_saveInProgress = true;
 			var text = new StringBuilder();
-			foreach ( var pair in _cache ) {
+			var cacheCopy = new Dictionary<string, string>(_cache);
+			foreach ( var pair in cacheCopy ) {
 				text = text
 					.Append(pair.Key)
 					.Append('|')
@@ -92,7 +93,7 @@ namespace BackupUtility.Core.FileHasher {
 			var str = text.ToString();
 			var bytes = Encoding.UTF8.GetBytes(str);
 			await _fs.CreateFile(_cachePath, bytes);
-			_loadedCount = _cache.Count;
+			_loadedCount = cacheCopy.Count;
 			_saveInProgress = false;
 		}
 	}

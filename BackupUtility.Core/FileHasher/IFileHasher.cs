@@ -6,6 +6,6 @@ namespace BackupUtility.Core.FileHasher {
 		string GetFileHash(byte[] fileContent);
 		void ResetFileHash(string filePath);
 		Task Load();
-		Task Save();
+		Task Save(bool force, int processedFiles);
 	}
 }

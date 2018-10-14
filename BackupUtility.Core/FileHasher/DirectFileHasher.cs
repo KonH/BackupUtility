@@ -27,6 +27,6 @@ namespace BackupUtility.Core.FileHasher {
 
 		public void ResetFileHash(string filePath) { }
 		public Task Load() => Task.CompletedTask;
-		public Task Save() => Task.CompletedTask;
+		public Task Save(bool force, int processedFiles) => Task.CompletedTask;
 	}
 }

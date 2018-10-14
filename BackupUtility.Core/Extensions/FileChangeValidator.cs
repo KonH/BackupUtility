@@ -25,8 +25,8 @@ namespace BackupUtility.Core.Extensions {
 			await _destination.Load();
 		}
 
-		public async Task Save() {
-			await _destination.Save();
+		public async Task Save(bool force, int processedFiles) {
+			await _destination.Save(force, processedFiles);
 		}
 	}
 }

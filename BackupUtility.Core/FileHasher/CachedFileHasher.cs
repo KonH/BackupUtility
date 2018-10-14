@@ -8,13 +8,16 @@ namespace BackupUtility.Core.FileHasher {
 		readonly IFileHasher  _origin;
 		readonly IFileManager _fs;
 		readonly string       _cachePath;
+		readonly int          _processedFilesRange;
 
+		int _curProcessedFiles = 0;
 		Dictionary<string, string> _cache = new Dictionary<string, string>();
 
-		public CachedFileHasher(IFileHasher origin, IFileManager fs, string cachePath) {
-			_origin    = origin;
-			_fs        = fs;
-			_cachePath = cachePath;
+		public CachedFileHasher(IFileHasher origin, IFileManager fs, string cachePath, int procesedFilesRange) {
+			_origin              = origin;
+			_fs                  = fs;
+			_cachePath           = cachePath;
+			_processedFilesRange = procesedFilesRange;
 		}
 
 		public async Task<string> GetFileHash(string filePath) {
@@ -56,7 +59,14 @@ namespace BackupUtility.Core.FileHasher {
 			}
 		}
 
-		public async Task Save() {
+		public async Task Save(bool force, int processedFiles) {
+			if ( !force ) {
+				if ( processedFiles > _curProcessedFiles + _processedFilesRange) {
+					_curProcessedFiles = processedFiles;
+				} else {
+					return;
+				}
+			}
 			var text = new StringBuilder();
 			foreach ( var pair in _cache ) {
 				text = text

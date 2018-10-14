@@ -59,7 +59,7 @@ namespace BackupUtility.Core.BackupManager {
 
 		async Task Disconnect() {
 			if ( _changeValidator != null ) {
-				await _changeValidator.Save();
+				await _changeValidator.Save(true, 0);
 			}
 			_source.Disconnect();
 			_destination.Disconnect();
@@ -109,8 +109,7 @@ namespace BackupUtility.Core.BackupManager {
 				var sourceContent = await _source.ReadAllBytes(sourcePath);
 				if ( await IsNeedToSkipFile(sourceContent, destPath) ) {
 					_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
-					AdvanceFileProgress(sourceContent.Length);
-					StopDump();
+					await AdvanceFileProgress(sourceContent.Length);
 					return new BackupFileResult(sourcePath, destPath, skipped: true);
 				}
 				if ( await _destination.IsFileExists(destPath) ) {
@@ -123,8 +122,7 @@ namespace BackupUtility.Core.BackupManager {
 				await _destination.CreateFile(destPath, sourceContent);
 				_changeValidator?.OnFileChanged(destPath);
 				_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): success");
-				AdvanceFileProgress(sourceContent.Length);
-				StopDump();
+				await AdvanceFileProgress(sourceContent.Length);
 				return new BackupFileResult(sourcePath, destPath);
 			} catch ( Exception e ) {
 				_logger?.LogWarning($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): {e}");
@@ -204,8 +202,12 @@ namespace BackupUtility.Core.BackupManager {
 			return $"[{string.Join(',', results)}]";
 		}
 
-		void AdvanceFileProgress(int bytes) {
+		async Task AdvanceFileProgress(int bytes) {
 			_progress.Advance(bytes, _stopWatch.Elapsed);
+			if ( _changeValidator != null ) {
+				await _changeValidator.Save(false, _progress.Files);
+			}
+			StopDump();
 		}
 
 		public BackupProgress GetLatestProgress() {

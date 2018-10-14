@@ -115,7 +115,8 @@ namespace BackupUtility.CLI {
 						return null;
 					}
 					var sourceHasher = new DirectFileHasher(sourceFs);
-					var cachePath = destFs.CombinePath(backup.To.Path, "cache.txt");
+					var sourceDirName = sourceFs.GetDirectoryName(path);
+					var cachePath = destFs.CombinePath(backup.To.Path, sourceDirName, "md5.cache");
 					var procesedFilesRange = destFs is SftpFileManager ? 5 : int.MaxValue;
 					var destHasher = new CachedFileHasher(new DirectFileHasher(destFs), destFs, cachePath, procesedFilesRange);
 					var task = new BackupTask(

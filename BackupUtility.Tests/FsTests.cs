@@ -5,8 +5,8 @@ using Xunit;
 
 namespace BackupUtility.Tests {
 	public abstract class FsTests : IDisposable {
-		readonly string       _root;
-		readonly IFileManager _manager;
+		protected readonly string       _root;
+		protected readonly IFileManager _manager;
 
 		public FsTests(string root, IFileManager manager) {
 			_root = root;
@@ -175,5 +175,13 @@ namespace BackupUtility.Tests {
 
 	public class SftpFsTests : FsTests {
 		public SftpFsTests() : base(SftpConfig.Path, new SftpFileManager(SftpConfig.Host, SftpConfig.UserName, SftpConfig.Password, null)) { }
+
+		[Fact]
+		public async void CanCreateFileIfConnectionBroken() {
+			_manager.Disconnect();
+			var path = _manager.CombinePath(_root, "connectionCheck");
+			await _manager.CreateDirectory(path);
+			Assert.True(await _manager.IsDirectoryExists(path));
+		}
 	}
 }

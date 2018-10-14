@@ -14,5 +14,4 @@ Limitations and ways of extension:
 - Don't support ignore lists
 - Not designed to backup really large files, can raise out of memory
 - Need resource utilization controls
-- Need destination file system cache to prevent unwanted reads
 - Need encoding fix for non-ascii names

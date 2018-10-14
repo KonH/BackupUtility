@@ -21,8 +21,12 @@ namespace BackupUtility.Core.Extensions {
 			_destination.ResetFileHash(destinationFilePath);
 		}
 
-		public void Save() {
-			_destination.Save();
+		public async Task Load() {
+			await _destination.Load();
+		}
+
+		public async Task Save() {
+			await _destination.Save();
 		}
 	}
 }

@@ -1,4 +1,4 @@
-﻿using System.Text;
+﻿using System;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using BackupUtility.Core.FileManager;
@@ -21,11 +21,12 @@ namespace BackupUtility.Core.FileHasher {
 
 		public string GetFileHash(byte[] fileContent) {
 			using ( var md5 = MD5.Create() ) {
-				return Encoding.UTF8.GetString(md5.ComputeHash(fileContent));
+				return Convert.ToBase64String(md5.ComputeHash(fileContent));
 			}
 		}
 
 		public void ResetFileHash(string filePath) { }
-		public void Save() { }
+		public Task Load() => Task.CompletedTask;
+		public Task Save() => Task.CompletedTask;
 	}
 }

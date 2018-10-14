@@ -115,7 +115,8 @@ namespace BackupUtility.CLI {
 						return null;
 					}
 					var sourceHasher = new DirectFileHasher(sourceFs);
-					var destHasher = new DirectFileHasher(destFs);
+					var cachePath = destFs.CombinePath(backup.To.Path, "cache.txt");
+					var destHasher = new CachedFileHasher(new DirectFileHasher(destFs), destFs, cachePath);
 					var task = new BackupTask(
 						path,
 						backup.To.Path,

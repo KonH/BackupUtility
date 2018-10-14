@@ -77,7 +77,7 @@ namespace BackupUtility.Tests.Mocks {
 
 		readonly ITimeManager _time;
 
-		MockDirectory _root = new MockDirectory();
+		readonly MockDirectory _root = new MockDirectory();
 
 		public MockFileManager(ITimeManager time) {
 			_time = time;

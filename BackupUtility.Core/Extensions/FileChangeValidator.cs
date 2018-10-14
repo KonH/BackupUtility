@@ -1,21 +1,28 @@
-﻿using System.Security.Cryptography;
+﻿using System.Threading.Tasks;
+using BackupUtility.Core.FileHasher;
 
 namespace BackupUtility.Core.Extensions {
 	public class FileChangeValidator {
-		public bool IsFileChanged(byte[] oldContents, byte[] newContents) {
-			using ( var md5 = MD5.Create() ) {
-				var oldHash = md5.ComputeHash(oldContents);
-				var newHash = md5.ComputeHash(newContents);
-				if ( oldHash.Length != newHash.Length ) {
-					return true;
-				}
-				for ( var i = 0; i < oldHash.Length; i++ ) {
-					if ( oldHash[i] != newHash[i] ) {
-						return true;
-					}
-				}
-				return false;
-			}
+		readonly IFileHasher _source;
+		readonly IFileHasher _destination;
+
+		public FileChangeValidator(IFileHasher source, IFileHasher destination) {
+			_source      = source;
+			_destination = destination;
+		}
+
+		public async Task<bool> IsFileChanged(byte[] sourceContent, string destinationFilePath) {
+			var sourceHash = _source.GetFileHash(sourceContent);
+			var destinationHash = await _destination.GetFileHash(destinationFilePath);
+			return sourceHash != destinationHash;
+		}
+
+		public void OnFileChanged(string destinationFilePath) {
+			_destination.ResetFileHash(destinationFilePath);
+		}
+
+		public void Save() {
+			_destination.Save();
 		}
 	}
 }

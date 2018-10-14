@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using BackupUtility.Core.Models;
+using BackupUtility.Core.FileHasher;
 using BackupUtility.Core.Extensions;
 using BackupUtility.Core.FileManager;
 using BackupUtility.Core.TimeManager;
@@ -113,13 +114,15 @@ namespace BackupUtility.CLI {
 						WriteLineWithColor("Empty destination path!", ConsoleColor.Red);
 						return null;
 					}
+					var sourceHasher = new DirectFileHasher(sourceFs);
+					var destHasher = new DirectFileHasher(destFs);
 					var task = new BackupTask(
 						path,
 						backup.To.Path,
 						sourceFs,
 						destFs,
 						new DefaultHistoryProvider(time, 3),
-						new FileChangeValidator()
+						new FileChangeValidator(sourceHasher, destHasher)
 					);
 					tasks.Add(task);
 				}

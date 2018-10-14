@@ -1,9 +1,10 @@
 ﻿using System;
 using BackupUtility.Core.FileManager;
 using BackupUtility.Core.BackupManager;
-using BackupUtility.Tests.Mocks;
+using BackupUtility.Core.FileHasher;
 using BackupUtility.Core.Extensions;
 using BackupUtility.Core.TimeManager;
+using BackupUtility.Tests.Mocks;
 using Xunit;
 
 namespace BackupUtility.Tests {
@@ -58,13 +59,19 @@ namespace BackupUtility.Tests {
 		}
 
 		[Fact]
-		public void FileChangeValidatorReturnsTrueOnDifferentData() {
-			Assert.True(new FileChangeValidator().IsFileChanged(new byte[] { 41 }, new byte[] { 42 }));
+		public async void FileChangeValidatorReturnsTrueOnDifferentData() {
+			await _fs.CreateFile("fileChangeTest", new byte[] { 42 });
+			var hasher = new DirectFileHasher(_fs);
+			var validator = new FileChangeValidator(hasher, hasher);
+			Assert.True(await validator.IsFileChanged(new byte[] { 41 }, "fileChangeTest"));
 		}
 
 		[Fact]
-		public void FileChangeValidatorReturnsFalseOnSameData() {
-			Assert.False(new FileChangeValidator().IsFileChanged(new byte[] { 42 }, new byte[] { 42 }));
+		public async void FileChangeValidatorReturnsFalseOnSameData() {
+			await _fs.CreateFile("fileChangeTest", new byte[] { 42 });
+			var hasher = new DirectFileHasher(_fs);
+			var validator = new FileChangeValidator(hasher, hasher);
+			Assert.False(await validator.IsFileChanged(new byte[] { 42 }, "fileChangeTest"));
 		}
 	}
 }

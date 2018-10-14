@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Linq;
 using System.Diagnostics;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using BackupUtility.Core.Models;
-using BackupUtility.Core.FileManager;
 using BackupUtility.Core.Extensions;
-using System.Threading;
+using BackupUtility.Core.FileManager;
 
 namespace BackupUtility.Core.BackupManager {
 	public class BackupManager : IBackupManager {
@@ -48,6 +48,7 @@ namespace BackupUtility.Core.BackupManager {
 			var result = await DumpSourceDir(sourceDir, backupDir);
 			_source.Disconnect();
 			_destination.Disconnect();
+			_changeValidator?.Save();
 			return result;
 		}
 
@@ -93,19 +94,21 @@ namespace BackupUtility.Core.BackupManager {
 			var destPath = _destination.CombinePath(backupDir, sourceFile);
 			try {
 				var sourceContent = await _source.ReadAllBytes(sourcePath);
+				if ( await IsNeedToSkipFile(sourceContent, destPath) ) {
+					_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
+					AdvanceFileProgress(sourceContent.Length);
+					StopDump();
+					return new BackupFileResult(sourcePath, destPath, skipped: true);
+				}
 				if ( await _destination.IsFileExists(destPath) ) {
 					var destContent = await _destination.ReadAllBytes(destPath);
-					if ( IsNeedToSkipFile(sourceContent, destContent) ) {
-						_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
-						AdvanceFileProgress(sourceContent.Length);
-						StopDump();
-						return new BackupFileResult(sourcePath, destPath, skipped: true);
-					}
 					await TryMoveOldCopyToHistory(backupDir, sourceFile, destContent);
 					await _destination.DeleteFile(destPath);
+					_changeValidator?.OnFileChanged(destPath);
 				}
 
 				await _destination.CreateFile(destPath, sourceContent);
+				_changeValidator?.OnFileChanged(destPath);
 				_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): success");
 				AdvanceFileProgress(sourceContent.Length);
 				StopDump();
@@ -133,9 +136,10 @@ namespace BackupUtility.Core.BackupManager {
 			Interlocked.Decrement(ref _currentConcurrentFileDumps);
 		}
 
-		bool IsNeedToSkipFile(byte[] sourceContent, byte[] destContent) {
+		async Task<bool> IsNeedToSkipFile(byte[] sourceContent, string destPath) {
 			if ( _changeValidator != null ) {
-				return !_changeValidator.IsFileChanged(sourceContent, destContent);
+				var isChanged = await _changeValidator.IsFileChanged(sourceContent, destPath);
+				return !isChanged;
 			}
 			return false;
 		}
@@ -155,6 +159,7 @@ namespace BackupUtility.Core.BackupManager {
 			var pathInHistory = _destination.CombinePath(historyDirPath, nameInHistory);
 			_logger?.LogDebug($"TryMoveOldCopyToHistory('{backupDir}', '{sourceFile}'): create file in history: '{pathInHistory}'");
 			await _destination.CreateFile(pathInHistory, destContent);
+			_changeValidator?.OnFileChanged(pathInHistory);
 		}
 
 		async Task TryCleanupHistoryDirectory(string historyDirPath) {
@@ -172,6 +177,7 @@ namespace BackupUtility.Core.BackupManager {
 				var minTimePath = _destination.CombinePath(historyDirPath, minTimeName);
 				_logger?.LogDebug($"TryCleanupHistoryDirectory('{historyDirPath}'): delete oldest copy: '{minTimePath}'");
 				await _destination.DeleteFile(minTimePath);
+				_changeValidator?.OnFileChanged(minTimePath);
 			} while ( true );
 		}
 

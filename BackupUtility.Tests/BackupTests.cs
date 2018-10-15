@@ -57,21 +57,5 @@ namespace BackupUtility.Tests {
 			Assert.True(await _fs.IsDirectoryExists(backupDir));
 			Assert.True(await _fs.IsFileExists(_fs.CombinePath(backupDir, sourceDir, fileToBackup)));
 		}
-
-		[Fact]
-		public async void FileChangeValidatorReturnsTrueOnDifferentData() {
-			await _fs.CreateFile("fileChangeTest", new byte[] { 42 });
-			var hasher = new DirectFileHasher(_fs);
-			var validator = new FileChangeValidator(hasher, hasher);
-			Assert.True(await validator.IsFileChanged(new byte[] { 41 }, "fileChangeTest"));
-		}
-
-		[Fact]
-		public async void FileChangeValidatorReturnsFalseOnSameData() {
-			await _fs.CreateFile("fileChangeTest", new byte[] { 42 });
-			var hasher = new DirectFileHasher(_fs);
-			var validator = new FileChangeValidator(hasher, hasher);
-			Assert.False(await validator.IsFileChanged(new byte[] { 42 }, "fileChangeTest"));
-		}
 	}
 }

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using BackupUtility.Core.FileManager;
@@ -9,6 +10,7 @@ namespace BackupUtility.Core.FileHasher {
 		readonly IFileManager _fs;
 		readonly string       _cachePath;
 		readonly int          _processedFilesRange;
+		readonly bool         _checkChangeTime;
 
 		int  _curProcessedFiles = 0;
 		int  _loadedCount       = 0;
@@ -16,11 +18,12 @@ namespace BackupUtility.Core.FileHasher {
 
 		Dictionary<string, string> _cache = new Dictionary<string, string>();
 
-		public CachedFileHasher(IFileHasher origin, IFileManager fs, string cachePath, int procesedFilesRange) {
+		public CachedFileHasher(IFileHasher origin, IFileManager fs, string cachePath, int procesedFilesRange, bool checkChangeTime) {
 			_origin              = origin;
 			_fs                  = fs;
 			_cachePath           = cachePath;
 			_processedFilesRange = procesedFilesRange;
+			_checkChangeTime     = checkChangeTime;
 		}
 
 		public async Task<string> GetFileHash(string filePath) {
@@ -49,17 +52,28 @@ namespace BackupUtility.Core.FileHasher {
 			if ( await _fs.IsFileExists(_cachePath) ) {
 				var bytes = await _fs.ReadAllBytes(_cachePath);
 				var text = Encoding.UTF8.GetString(bytes);
-				var lines = text.Split(System.Environment.NewLine);
+				var lines = text.Split(Environment.NewLine);
 				foreach ( var line in lines ) {
 					if ( string.IsNullOrWhiteSpace(line) ) {
 						continue;
 					}
 					var parts = line.Split('|');
-					var key = parts[0];
-					var value = parts[1];
-					_cache.Add(key, value);
+					if ( parts.Length == 2 ) {
+						var key = parts[0];
+						var value = parts[1];
+						_cache.Add(key, value);
+					}
 				}
 				_loadedCount = _cache.Count;
+				if ( _checkChangeTime ) {
+					var lastCacheChangeTime = await _fs.GetFileChangeTime(_cachePath);
+					var cacheFiles = new List<string>(_cache.Keys);
+					foreach ( var file in cacheFiles ) {
+						if ( await _fs.GetFileChangeTime(file) > lastCacheChangeTime ) {
+							ResetFileHash(file);
+						}
+					}
+				}
 			}
 		}
 
@@ -85,7 +99,7 @@ namespace BackupUtility.Core.FileHasher {
 					.Append(pair.Key)
 					.Append('|')
 					.Append(pair.Value)
-					.Append(System.Environment.NewLine);
+					.Append(Environment.NewLine);
 			}
 			if ( await _fs.IsFileExists(_cachePath) ) {
 				await _fs.DeleteFile(_cachePath);

@@ -106,12 +106,12 @@ namespace BackupUtility.Core.BackupManager {
 			var sourcePath = _source.CombinePath(sourceDir, sourceFile);
 			var destPath = _destination.CombinePath(backupDir, sourceFile);
 			try {
-				var sourceContent = await _source.ReadAllBytes(sourcePath);
-				if ( await IsNeedToSkipFile(sourceContent, destPath) ) {
+				if ( await IsNeedToSkipFile(sourcePath, destPath) ) {
 					_logger?.LogDebug($"DumpFile: '{sourceFile}' ('{sourceDir}' => '{backupDir}'): skipped");
-					await AdvanceFileProgress(sourceContent.Length);
+					await AdvanceFileProgress(0);
 					return new BackupFileResult(sourcePath, destPath, skipped: true);
 				}
+				var sourceContent = await _source.ReadAllBytes(sourcePath);
 				if ( await _destination.IsFileExists(destPath) ) {
 					var destContent = await _destination.ReadAllBytes(destPath);
 					await TryMoveOldCopyToHistory(backupDir, sourceFile, destContent);
@@ -147,9 +147,9 @@ namespace BackupUtility.Core.BackupManager {
 			Interlocked.Decrement(ref _currentConcurrentFileDumps);
 		}
 
-		async Task<bool> IsNeedToSkipFile(byte[] sourceContent, string destPath) {
+		async Task<bool> IsNeedToSkipFile(string sourcePath, string destPath) {
 			if ( _changeValidator != null ) {
-				var isChanged = await _changeValidator.IsFileChanged(sourceContent, destPath);
+				var isChanged = await _changeValidator.IsFileChanged(sourcePath, destPath);
 				return !isChanged;
 			}
 			return false;

@@ -11,8 +11,8 @@ namespace BackupUtility.Core.Extensions {
 			_destination = destination;
 		}
 
-		public async Task<bool> IsFileChanged(byte[] sourceContent, string destinationFilePath) {
-			var sourceHash = _source.GetFileHash(sourceContent);
+		public async Task<bool> IsFileChanged(string sourceFilePath, string destinationFilePath) {
+			var sourceHash = await _source.GetFileHash(sourceFilePath);
 			var destinationHash = await _destination.GetFileHash(destinationFilePath);
 			return sourceHash != destinationHash;
 		}
@@ -22,10 +22,12 @@ namespace BackupUtility.Core.Extensions {
 		}
 
 		public async Task Load() {
+			await _source.Load();
 			await _destination.Load();
 		}
 
 		public async Task Save(bool force, int processedFiles) {
+			await _source.Save(force, processedFiles);
 			await _destination.Save(force, processedFiles);
 		}
 	}

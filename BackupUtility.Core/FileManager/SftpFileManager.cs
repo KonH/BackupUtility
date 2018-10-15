@@ -168,7 +168,7 @@ namespace BackupUtility.Core.FileManager {
 			return Task.Run(() => {
 				try {
 					action();
-				} catch ( SshConnectionException ) {
+				} catch ( SshException ) {
 					Connect();
 					action();
 				}
@@ -179,7 +179,7 @@ namespace BackupUtility.Core.FileManager {
 			return Task.Run(async () => {
 				try {
 					await action();
-				} catch ( SshConnectionException ) {
+				} catch ( SshException ) {
 					Connect();
 					await action();
 				}
@@ -190,7 +190,7 @@ namespace BackupUtility.Core.FileManager {
 			return Task.Run(() => {
 				try {
 					return action();
-				} catch ( SshConnectionException ) {
+				} catch ( SshException ) {
 					Connect();
 					return action();
 				}
@@ -201,7 +201,7 @@ namespace BackupUtility.Core.FileManager {
 			return Task.Run(async () => {
 				try {
 					return await action();
-				} catch ( SshConnectionException ) {
+				} catch ( SshException ) {
 					Connect();
 					return await action();
 				}

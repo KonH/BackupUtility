@@ -115,11 +115,12 @@ namespace BackupUtility.CLI {
 						return null;
 					}
 					var sourceCachePath = path + ".md5.cache";
-					var sourceHasher = new CachedFileHasher(new DirectFileHasher(sourceFs), sourceFs, sourceCachePath, int.MaxValue, true);
+					var sourceFilesRange = sourceFs is SftpFileManager ? 128 : 1024;
+					var sourceHasher = new CachedFileHasher(new DirectFileHasher(sourceFs), sourceFs, sourceCachePath, sourceFilesRange, true);
 					var sourceDirName = sourceFs.GetDirectoryName(path);
 					var cachePath = destFs.CombinePath(backup.To.Path, sourceDirName + ".md5.cache");
-					var procesedFilesRange = destFs is SftpFileManager ? 5 : int.MaxValue;
-					var destHasher = new CachedFileHasher(new DirectFileHasher(destFs), destFs, cachePath, procesedFilesRange, false);
+					var destFilesRange = destFs is SftpFileManager ? 128 : 1024;
+					var destHasher = new CachedFileHasher(new DirectFileHasher(destFs), destFs, cachePath, destFilesRange, false);
 					var task = new BackupTask(
 						path,
 						backup.To.Path,
@@ -165,6 +166,7 @@ namespace BackupUtility.CLI {
 			);
 			var task = manager.Dump(backupTask.SourceDir, backupTask.DestinationDir);
 			Task.Run(async () => {
+				var prevFiles = 0;
 				while ( true ) {
 					await Task.Delay(5000);
 					var progress = manager.GetLatestProgress();
@@ -173,6 +175,10 @@ namespace BackupUtility.CLI {
 					}
 					var mbs = progress.Bytes / 1024 / 1024;
 					var secs = progress.Elapsed.TotalSeconds;
+					if ( prevFiles >= progress.Files ) {
+						continue;
+					}
+					prevFiles = progress.Files;
 					Console.WriteLine(
 						$"Files: {progress.Files}, MBs: {mbs}, elapsed: {progress.Elapsed} " +
 						$"[{(secs > 0 ? Math.Round(mbs/secs, 2) : -1.0)} MB/sec]"

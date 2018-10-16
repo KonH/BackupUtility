@@ -12,6 +12,9 @@ namespace BackupUtility.Tests {
 			_root = root;
 			_manager = manager;
 			_manager.Connect();
+			if ( _manager.IsDirectoryExists(_root).Result ) {
+				_manager.DeleteDirectory(_root).Wait();
+			}
 			_manager.CreateDirectory(_root).Wait();
 		}
 
